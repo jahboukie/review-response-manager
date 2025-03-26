@@ -1,0 +1,27 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Review {
+  id           Int      @id @default(autoincrement())
+  platform     String
+  content      String
+  sentiment    String
+  rating       Float?
+  response     String?
+  respondedAt  DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model Template {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   String
+  category  String
+  createdAt DateTime @default(now())
+}
