@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ReviewsList } from "@/components/reviews/reviews-list"
-import { ReviewFilters } from "@/components/reviews/review-filters"
-import { AddReviewForm } from "@/components/reviews/add-review-form"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, Filter } from "lucide-react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReviewsList } from "@/components/reviews/reviews-list";
+import { ReviewFilters } from "@/components/reviews/review-filters";
+import { AddReviewForm } from "@/components/reviews/add-review-form";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Filter } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -16,16 +16,54 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function ReviewsPage() {
-  const [showAddReview, setShowAddReview] = useState(false)
-  const [reviews, setReviews] = useState([])
+  const [showAddReview, setShowAddReview] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddReview = (newReview) => {
-    setReviews([newReview, ...reviews])
-    setShowAddReview(false)
-  }
+  // Fetch reviews on mount
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/reviews');
+        console.log('Fetch response status:', res.status);
+        if (!res.ok) throw new Error(`Failed to fetch reviews: ${res.statusText}`);
+        const data = await res.json();
+        console.log('Fetched reviews:', data);
+        setReviews(data);
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+        toast.error('Failed to load reviews: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+
+  // Handle adding a new review via the API
+  const handleAddReview = async (newReview: { platform: string; content: string; sentiment: string; rating: number }) => {
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReview),
+      });
+      if (!res.ok) throw new Error('Failed to add review');
+      const addedReview = await res.json();
+      setReviews([addedReview, ...reviews]);
+      setShowAddReview(false);
+      toast.success('Review added successfully');
+    } catch (error) {
+      console.error('Error adding review:', error);
+      toast.error('Failed to add review: ' + error.message);
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -84,15 +122,21 @@ export default function ReviewsPage() {
                 <CardDescription>View and respond to customer reviews across all platforms</CardDescription>
               </CardHeader>
               <CardContent>
-                <TabsContent value="all" className="mt-0">
-                  <ReviewsList filter="all" />
-                </TabsContent>
-                <TabsContent value="pending" className="mt-0">
-                  <ReviewsList filter="pending" />
-                </TabsContent>
-                <TabsContent value="responded" className="mt-0">
-                  <ReviewsList filter="responded" />
-                </TabsContent>
+                {loading ? (
+                  <div>Loading reviews...</div>
+                ) : (
+                  <>
+                    <TabsContent value="all" className="mt-0">
+                      <ReviewsList reviews={reviews} filter="all" />
+                    </TabsContent>
+                    <TabsContent value="pending" className="mt-0">
+                      <ReviewsList reviews={reviews} filter="pending" />
+                    </TabsContent>
+                    <TabsContent value="responded" className="mt-0">
+                      <ReviewsList reviews={reviews} filter="responded" />
+                    </TabsContent>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -103,6 +147,5 @@ export default function ReviewsPage() {
         </Tabs>
       </main>
     </div>
-  )
+  );
 }
-

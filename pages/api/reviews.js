@@ -8,7 +8,8 @@ export default async function handler(req, res) {
       const reviews = await prisma.review.findMany();
       res.status(200).json(reviews);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch reviews' });
+      console.error('GET /api/reviews error:', error);
+      res.status(500).json({ error: 'Failed to fetch reviews', details: error.message });
     }
   } else if (req.method === 'POST') {
     try {
@@ -18,7 +19,8 @@ export default async function handler(req, res) {
       });
       res.status(201).json(review);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to create review' });
+      console.error('POST /api/reviews error:', error);
+      res.status(500).json({ error: 'Failed to create review', details: error.message });
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST']);
