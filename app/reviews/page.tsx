@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReviewsList } from "@/components/reviews/reviews-list";
@@ -20,12 +21,16 @@ import {
 import { toast } from "sonner";
 
 export default function ReviewsPage() {
+  const { user, error, isLoading: authLoading } = useUser();
   const [showAddReview, setShowAddReview] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch reviews on mount
+  console.log('useUser state:', { user, error, authLoading });
+
   useEffect(() => {
+    if (!user) return;
+
     const fetchReviews = async () => {
       try {
         setLoading(true);
@@ -44,9 +49,8 @@ export default function ReviewsPage() {
     };
 
     fetchReviews();
-  }, []);
+  }, [user]);
 
-  // Handle adding a new review via the API
   const handleAddReview = async (newReview: { platform: string; content: string; sentiment: string; rating: number }) => {
     try {
       const res = await fetch('/api/reviews', {
@@ -64,6 +68,25 @@ export default function ReviewsPage() {
       toast.error('Failed to add review: ' + error.message);
     }
   };
+
+  if (authLoading) {
+    return <div>Loading authentication...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center p-6">
+        <h1 className="text-3xl font-bold tracking-tight mb-4">Please log in to view reviews</h1>
+        <a href="/api/auth/login">
+          <Button>Login</Button>
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -103,6 +126,11 @@ export default function ReviewsPage() {
                 <AddReviewForm onAddReview={handleAddReview} />
               </DialogContent>
             </Dialog>
+            <a href="/api/auth/logout">
+              <Button size="sm" className="h-9" variant="outline">
+                Logout
+              </Button>
+            </a>
           </div>
         </div>
 
